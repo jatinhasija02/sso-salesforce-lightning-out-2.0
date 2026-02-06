@@ -34,10 +34,10 @@ const LightningContainer = ({ frontdoorUrl }) => {
                 container-type="standard"
             ></lightning-out-application>
 
+            <c-hello-world-lwc message="Hello from React 2.0!"></c-hello-world-lwc>
             {/* Your actual LWC - it will "wait" for the app above to log in */ }
             { frontdoorUrl && (
                 <div style={ { display: isReady ? 'block' : 'none' } }>
-                    <c-hello-world-lwc message="Hello from React 2.0!"></c-hello-world-lwc>
                 </div>
             ) }
 
