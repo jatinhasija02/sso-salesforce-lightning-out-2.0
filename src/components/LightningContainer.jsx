@@ -1,54 +1,46 @@
+import React, { useEffect, useState } from 'react';
 
-import React, { useEffect, useRef, useState } from 'react';
-
-const LightningContainer = ({ accessToken, instanceUrl }) => {
-    const [error, setError] = useState(null);
-    const containerRef = useRef(null);
+const LightningContainer = ({ frontdoorUrl }) => {
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        if (!window.$Lightning) {
-            setError("Salesforce script not loaded in index.html");
-            return;
+        const lightningApp = document.getElementById('lightning-app');
+
+        const handleReady = () => {
+            console.log("LO 2.0: Salesforce session established!");
+            setIsReady(true);
+        };
+
+        if (lightningApp) {
+            lightningApp.addEventListener('lo.application.ready', handleReady);
         }
 
-        console.log("initializing Lightning Out 2.0...");
-        console.log('-> Target App: c:LightningOutApp');
-        console.log('-> Target Component: c:helloWorldLwc');
-
-        // 1. Initialize your specific Lightning Out App
-        window.$Lightning.use(
-            "c:LightningOutApp",
-            function () {
-                // 2. Create your Hello World LWC
-                window.$Lightning.createComponent(
-                    "c:helloWorldLwc",
-                    {
-                        // Optional: Pass data to your LWC @api properties here
-                        message: "Hello from React!"
-                    },
-                    containerRef.current,
-                    function (cmp, status, errorMessage) {
-                        if (status === "SUCCESS") {
-                            console.log("helloWorldLwc Created Successfully!");
-                        } else {
-                            console.error("CreateComponent Error:", errorMessage);
-                            setError("Failed to load LWC: " + errorMessage);
-                        }
-                    }
-                );
-            },
-            instanceUrl,
-            accessToken
-        );
-    }, [accessToken, instanceUrl]);
+        return () => {
+            if (lightningApp) {
+                lightningApp.removeEventListener('lo.application.ready', handleReady);
+            }
+        };
+    }, []);
 
     return (
-        <div style={ { padding: '20px', border: '1px solid #ddd', marginTop: '20px' } }>
+        <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
             <h3>Salesforce Lightning Out 2.0</h3>
-            { error && <div style={ { color: 'red', fontWeight: 'bold' } }>{ error }</div> }
 
-            {/* The helloWorldLwc will render inside this div */ }
-            <div ref={ containerRef } id="lightning-container" style={ { minHeight: '200px' } }></div>
+            {/* The core LO 2.0 Element */ }
+            <lightning-out-application
+                id="lightning-app"
+                frontdoor-url={ frontdoorUrl }
+                container-type="standard"
+            ></lightning-out-application>
+
+            {/* Your actual LWC - it will "wait" for the app above to log in */ }
+            { frontdoorUrl && (
+                <div style={ { display: isReady ? 'block' : 'none' } }>
+                    <c-hello-world-lwc message="Hello from React 2.0!"></c-hello-world-lwc>
+                </div>
+            ) }
+
+            { !isReady && <p>Connecting to Salesforce Securely...</p> }
         </div>
     );
 };

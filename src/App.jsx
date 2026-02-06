@@ -57,18 +57,13 @@ function App() {
       <div style={ { textAlign: 'center', marginTop: '50px' } }>
         <h1>✅ SSO Validated</h1>
 
-        {/* INVISIBLE IFRAME: This establishes the session cookie needed to fix the 401 error */ }
-        <iframe
-          src={ sfSession.frontdoorUrl }
-          style={ { display: 'none' } }
-          title="sf_login"
+        <LightningContainer
+          frontdoorUrl={ sfSession.frontdoorUrl }
         />
 
-        <LightningContainer
-          accessToken={ sfSession.accessToken }
-          instanceUrl={ sfSession.instanceUrl }
-        />
-        {/* ... rest of your code ... */ }
+        <button onClick={ () => setSfSession({ isAuthenticated: false }) }>
+          Logout
+        </button>
       </div>
     );
   }
