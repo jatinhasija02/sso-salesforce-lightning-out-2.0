@@ -3,6 +3,10 @@ import React, { useEffect, useState } from 'react';
 const LightningContainer = ({ frontdoorUrl }) => {
     const [isReady, setIsReady] = useState(false);
 
+    // PASTE YOUR VALUES HERE FROM THE LIGHTNING OUT 2.0 APP MANAGER
+    const LIGHTNING_OUT_APP_ID = "1Usxxxxxxxxxxxxxxx"; // The 18-digit ID
+    const TARGET_LWC = "c-hello-world-lwc";           // The kebab-case name of your LWC
+
     useEffect(() => {
         const lightningApp = document.getElementById('lightning-app');
 
@@ -20,27 +24,34 @@ const LightningContainer = ({ frontdoorUrl }) => {
                 lightningApp.removeEventListener('lo.application.ready', handleReady);
             }
         };
-    }, []);
+    }, [frontdoorUrl]);
 
     return (
         <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
             <h3>Salesforce Lightning Out 2.0</h3>
 
-            {/* The core LO 2.0 Element */ }
+            {/* LO 2.0 ATTRIBUTES:
+                - app-id: Mandatory 18-digit ID from App Manager
+                - components: Comma-separated list of LWCs allowed to load
+            */}
             <lightning-out-application
-                app-name="LightningOutApp"
+                id="lightning-app"
+                app-id={ LIGHTNING_OUT_APP_ID }
                 frontdoor-url={ frontdoorUrl }
+                components={ TARGET_LWC }
                 container-type="standard"
             ></lightning-out-application>
 
-            {/* Your actual LWC - it will "wait" for the app above to log in */ }
-            { frontdoorUrl && (
-                <div style={ { display: isReady ? 'block' : 'none' } }>
-                    <c-hello-world-lwc message="Hello from React 2.0!"></c-hello-world-lwc>
+            {/* The LWC will only be visible once the session is ready */ }
+            <div style={ { display: isReady ? 'block' : 'none', minHeight: '150px' } }>
+                <c-hello-world-lwc message="Successfully connected via LO 2.0!"></c-hello-world-lwc>
+            </div>
+
+            { !isReady && (
+                <div className="loader">
+                    <p>🔄 Establishing Secure Salesforce Bridge...</p>
                 </div>
             ) }
-
-            { !isReady && <p>Connecting to Salesforce Securely...</p> }
         </div>
     );
 };
