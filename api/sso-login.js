@@ -2,7 +2,6 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const querystring = require('querystring');
 
-// Vercel Entry Point
 module.exports = async (req, res) => {
     // Only allow POST
     if (req.method !== 'POST') {
@@ -22,20 +21,20 @@ module.exports = async (req, res) => {
         AUTH0_M2M_CLIENT_SECRET,
         SF_LOGIN_URL,
         SF_CLIENT_ID,
-        SF_PRIVATE_KEY_CONTENT // Changed from SF_PRIVATE_KEY_PATH
+        SF_PRIVATE_KEY_CONTENT
     } = process.env;
 
-    // 1. Validate Environment Variables
+    // VALIDATION: Ensure the key exists in environment variables
     if (!SF_PRIVATE_KEY_CONTENT) {
-        console.error("Missing SF_PRIVATE_KEY_CONTENT in environment variables.");
+        console.error("CRITICAL: SF_PRIVATE_KEY_CONTENT is missing.");
         return res.status(500).json({ success: false, message: "Server configuration error: Missing Private Key." });
     }
 
-    // Load Private Key and fix formatting
+    // FIX: Convert literal "\n" strings into actual line breaks for the RSA parser
     const SF_PRIVATE_KEY = SF_PRIVATE_KEY_CONTENT.replace(/\\n/g, '\n');
 
     try {
-        // 2. Auth0 Search
+        // 1. Auth0 Search
         const auth0TokenRes = await axios.post(`${AUTH0_DOMAIN}/oauth/token`, {
             client_id: AUTH0_M2M_CLIENT_ID,
             client_secret: AUTH0_M2M_CLIENT_SECRET,
@@ -52,7 +51,7 @@ module.exports = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found in Auth0 database." });
         }
 
-        // 3. Salesforce JWT Signing
+        // 2. Salesforce JWT Signing - Using RS256 algorithm
         const jwtToken = jwt.sign(
             {
                 iss: SF_CLIENT_ID,
@@ -60,11 +59,11 @@ module.exports = async (req, res) => {
                 aud: SF_LOGIN_URL,
                 exp: Math.floor(Date.now() / 1000) + 180
             },
-            SF_PRIVATE_KEY,
+            SF_PRIVATE_KEY, // The multi-line RSA key
             { algorithm: 'RS256' }
         );
 
-        // 4. Salesforce Token Exchange
+        // 3. Salesforce Token Exchange
         const sfTokenRes = await axios.post(`${SF_LOGIN_URL}/services/oauth2/token`,
             querystring.stringify({
                 grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -84,7 +83,7 @@ module.exports = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("SSO Error Detail:", error.response?.data || error.message);
+        console.error("SSO Error:", error.response?.data || error.message);
         return res.status(500).json({
             success: false,
             message: "Internal server error during handshake.",
