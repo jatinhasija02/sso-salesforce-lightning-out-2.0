@@ -26,12 +26,10 @@ const LightningContainer = ({ frontdoorUrl }) => {
     return (
         <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
             <h3>Salesforce Lightning Out 2.0</h3>
-
             {/* The core LO 2.0 Element */ }
             <lightning-out-application
                 app-id="1UsNS0000000CUD0A2"
                 frontdoor-url={ frontdoorUrl }
-                container-type="standard"
                 components = "c-hello-world-lwc"
             ></lightning-out-application>
 
