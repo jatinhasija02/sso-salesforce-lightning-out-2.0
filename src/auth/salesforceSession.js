@@ -1,6 +1,6 @@
 export const verifySalesforceSession = async () => {
     const response = await fetch(
-        'https://YOUR_DOMAIN.my.salesforce.com/services/data/v59.0/',
+        'https://algocirrus-b6-dev-ed.develop.my.salesforce.com/services/data/v59.0/',
         {
             credentials: 'include'
         }

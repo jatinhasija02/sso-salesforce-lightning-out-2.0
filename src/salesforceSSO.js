@@ -4,17 +4,10 @@ export const loginToSalesforce = () => {
         iframe.style.display = 'none';
 
         iframe.src =
-            'https://YOUR_DOMAIN.my.salesforce.com' +
-            '?so=YOUR_SSO_ID';
+            'https://algocirrus-b6-dev-ed.develop.my.salesforce.com?so=Okta_SSO';
 
-        iframe.onload = () => {
-            // Salesforce session cookie is now set
-            resolve();
-        };
-
-        iframe.onerror = () => {
-            reject('Salesforce SSO failed');
-        };
+        iframe.onload = () => resolve();
+        iframe.onerror = () => reject('Salesforce SSO failed');
 
         document.body.appendChild(iframe);
     });

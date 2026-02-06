@@ -1,13 +1,11 @@
-import { AUTH_STATE } from '../authStates';
-
-export const logoutFromSalesforce = () => {
+const handleLogout = () => {
     window.location.href =
-        'https://YOUR_DOMAIN.my.salesforce.com/secur/logout.jsp';
-};
+        'https://algocirrus-b6-dev-ed.develop.my.salesforce.com/secur/logout.jsp';
 
-export const logoutFromAuth0 = () => {
-    window.location.href =
-        `https://YOUR_AUTH0_DOMAIN/v2/logout` +
-        `?client_id=YOUR_CLIENT_ID` +
-        `&returnTo=${encodeURIComponent(window.location.origin)}`;
+    setTimeout(() => {
+        window.location.href =
+            'https://dev-sf4mdxnyt4bvy3np.us.auth0.com/v2/logout' +
+            '?client_id=pkJRoRqgVGgxE1E5pbNfRGibCdoIQ2jC' +
+            '&returnTo=http%3A%2F%2Flocalhost%3A3000';
+    }, 500);
 };

@@ -7,7 +7,7 @@ export const loadLightningOut = () => {
 
         const script = document.createElement('script');
         script.src =
-            'https://YOUR_DOMAIN.lightning.force.com/lightning/lightning.out.js';
+            'https://algocirrus-b6-dev-ed.lightning.force.com/lightning/lightning.out.js';
 
         script.onload = () => {
             window.$Lightning.use(
@@ -20,7 +20,7 @@ export const loadLightningOut = () => {
                         () => resolve()
                     );
                 },
-                'https://YOUR_DOMAIN.my.salesforce.com'
+                'https://algocirrus-b6-dev-ed.my.salesforce.com'
             );
         };
 

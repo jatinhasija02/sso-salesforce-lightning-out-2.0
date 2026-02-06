@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AUTH_STATE } from './authStates';
 import { auth0Login } from './auth0';
 import { loginToSalesforce } from './salesforceSSO';
-import { loadLightningOut } from './lightning';
+import { loadLightningOut } from './lightning/lightning';
 import { verifySalesforceSession } from './auth/salesforceSession';
 import { LoginScreen } from './LoginScreen';
 import { handleLogout } from './auth/logout';
