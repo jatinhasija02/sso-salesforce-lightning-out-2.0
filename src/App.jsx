@@ -10,7 +10,8 @@ function App() {
   const [sfSession, setSfSession] = useState({
     isAuthenticated: false,
     accessToken: null,
-    instanceUrl: null
+    instanceUrl: null,
+    frontdoorUrl: null // Add this  
   });
 
   const handleSilentSSO = async () => {
@@ -36,7 +37,8 @@ function App() {
         setSfSession({
           isAuthenticated: true,
           accessToken: response.data.accessToken,
-          instanceUrl: response.data.instanceUrl
+          instanceUrl: response.data.instanceUrl,
+          frontdoorUrl: response.data.frontdoorUrl // Capture this
         });
       } else {
         setErrorMsg(response.data.message || "Login failed.");
@@ -54,19 +56,19 @@ function App() {
     return (
       <div style={ { textAlign: 'center', marginTop: '50px' } }>
         <h1>✅ SSO Validated</h1>
-        <p>Check console for Frontdoor URL.</p>
+
+        {/* INVISIBLE IFRAME: This establishes the session cookie needed to fix the 401 error */ }
+        <iframe
+          src={ sfSession.frontdoorUrl }
+          style={ { display: 'none' } }
+          title="sf_login"
+        />
 
         <LightningContainer
           accessToken={ sfSession.accessToken }
           instanceUrl={ sfSession.instanceUrl }
         />
-
-        <button
-          onClick={ () => setSfSession({ isAuthenticated: false }) }
-          style={ { marginTop: '20px', padding: '10px' } }
-        >
-          Logout
-        </button>
+        {/* ... rest of your code ... */ }
       </div>
     );
   }
