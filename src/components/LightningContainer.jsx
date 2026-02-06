@@ -4,20 +4,16 @@ const LightningContainer = ({ frontdoorUrl }) => {
     const [isReady, setIsReady] = useState(false);
     const containerRef = useRef(null);
 
-    // Using the frontdoorUrl as a dependency ensures we reset state 
-    // when a new email is entered
     useEffect(() => {
         setIsReady(false);
 
-        // 1. CLEANUP: Remove any existing lo-app elements to prevent user leakage
-        const existingApp = document.getElementById('lightning-app');
-        if (existingApp) {
-            existingApp.remove();
-        }
+        // 1. Physically remove old elements
+        const oldApp = document.getElementById('lightning-app');
+        if (oldApp) oldApp.remove();
 
         if (!frontdoorUrl) return;
 
-        // 2. CREATE NEW: Force a fresh element for the specific user entered
+        // 2. Create the element dynamically with a UNIQUE ID for this session
         const loApp = document.createElement('lightning-out-application');
         loApp.setAttribute('id', 'lightning-app');
         loApp.setAttribute('app-id', '1UsNS0000000CUD0A2');
@@ -26,7 +22,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
         loApp.setAttribute('components', 'c-hello-world-lwc');
 
         const handleReady = () => {
-            console.log("LO 2.0: Fresh session established for entry.");
+            console.log("LO 2.0: Fresh session confirmed.");
             setIsReady(true);
         };
 
@@ -39,19 +35,17 @@ const LightningContainer = ({ frontdoorUrl }) => {
         return () => {
             loApp.removeEventListener('lo.application.ready', handleReady);
         };
-    }, [frontdoorUrl]); // TRIGGERS EVERY TIME EMAIL CHANGES
+    }, [frontdoorUrl]); // Dependency on the URL forces re-run on email change
 
     return (
         <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
-            <h3>Dynamic Salesforce Portal</h3>
-
             <div ref={ containerRef }></div>
 
             { isReady ? (
-                /* The key={frontdoorUrl} forces the LWC to re-render from scratch */
+                // Adding a key here ensures the LWC is re-rendered entirely
                 <c-hello-world-lwc key={ frontdoorUrl }></c-hello-world-lwc>
             ) : (
-                <p>🔄 Switching to user session...</p>
+                <p>🔄 Initializing Dynamic User Session...</p>
             ) }
         </div>
     );

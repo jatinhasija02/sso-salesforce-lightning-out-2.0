@@ -14,38 +14,40 @@ function App() {
     frontdoorUrl: null // Add this  
   });
 
+  // src/App.jsx
+
   const handleSilentSSO = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      console.log(`Requesting SSO for: ${emailInput}`);
+      // --- STEP 1: FORCE LOGOUT PREVIOUS SESSION ---
+      // This clears the browser cookies for salesforce.com
+      const logoutImg = new Image();
+      logoutImg.src = `https://algocirrus-b6-dev-ed.develop.my.salesforce.com/secur/logout.jsp?_=${Date.now()}`;
 
-      // FIXED: Removed http://localhost:8080. 
-      // Vercel will automatically route /api to your server/index.js
+      // Wait a moment for the cookie clear to register
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // --- STEP 2: PROCEED WITH NEW LOGIN ---
+      console.log(`Requesting Fresh SSO for: ${emailInput}`);
       const response = await axios.post('/api/sso-login', {
         email: emailInput
       });
 
       if (response.data.success) {
-        console.group("SECURITY HANDSHAKE SUCCESS");
-        console.log("1. Access Token Received");
-        console.log("2. Instance URL:", response.data.instanceUrl);
-        console.log("3. FRONTDOOR URL (Magic Link):", response.data.frontdoorUrl);
-        console.groupEnd();
-
         setSfSession({
           isAuthenticated: true,
           accessToken: response.data.accessToken,
-          instanceUrl: response.data.instanceUrl,
-          frontdoorUrl: response.data.frontdoorUrl // Capture this
+          instanceUrl: response.data.instance_url,
+          frontdoorUrl: response.data.frontdoorUrl
         });
       } else {
         setErrorMsg(response.data.message || "Login failed.");
       }
     } catch (err) {
       console.error("Connection Error:", err);
-      setErrorMsg("Backend connection failed. Ensure the server is running.");
+      setErrorMsg("Backend connection failed.");
     } finally {
       setLoading(false);
     }
