@@ -21,6 +21,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
             }
         };
     }, []);
+    console.log('frontdoorUrl' + frontdoorUrl);
 
     return (
         <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
