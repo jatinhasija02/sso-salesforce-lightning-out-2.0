@@ -26,7 +26,6 @@ const LightningContainer = ({ frontdoorUrl }) => {
     return (
         <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px', minHeight: '200px' } }>
             <lightning-out-application
-                id="lightning-app"
                 app-id="1UsNS0000000CUD0A2"
                 frontdoor-url={ frontdoorUrl }
                 components="c-hello-world-lwc"
