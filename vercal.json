@@ -2,8 +2,8 @@
     "version": 2,
     "rewrites": [
         {
-            "source": "/server/sso-login",
-            "destination": "/server/sso-login.js"
+            "source": "/api/sso-login",
+            "destination": "/api/sso-login.js"
         },
         {
             "source": "/(.*)",
