@@ -18,18 +18,19 @@ function App() {
     setErrorMsg("");
 
     try {
-      console.log(`🔵 Requesting SSO for: ${emailInput}`);
+      console.log(`Requesting SSO for: ${emailInput}`);
 
-      // FIXED: Call the relative path so it works on your Vercel domain
+      // FIXED: Removed http://localhost:8080. 
+      // Vercel will automatically route /api to your server/index.js
       const response = await axios.post('/api/sso-login', {
         email: emailInput
       });
 
       if (response.data.success) {
-        console.group("🔐 SECURITY HANDSHAKE SUCCESS");
+        console.group("SECURITY HANDSHAKE SUCCESS");
         console.log("1. Access Token Received");
         console.log("2. Instance URL:", response.data.instanceUrl);
-        console.log("3. 🚀 FRONTDOOR URL (Magic Link):", response.data.frontdoorUrl);
+        console.log("3. FRONTDOOR URL (Magic Link):", response.data.frontdoorUrl);
         console.groupEnd();
 
         setSfSession({
@@ -42,21 +43,28 @@ function App() {
       }
     } catch (err) {
       console.error("Connection Error:", err);
-      setErrorMsg("Backend connection failed. Ensure environment variables are set in Vercel.");
+      setErrorMsg("Backend connection failed. Ensure the server is running.");
     } finally {
       setLoading(false);
     }
   };
 
+  // --- RENDER ---
   if (sfSession.isAuthenticated) {
     return (
       <div style={ { textAlign: 'center', marginTop: '50px' } }>
         <h1>✅ SSO Validated</h1>
+        <p>Check console for Frontdoor URL.</p>
+
         <LightningContainer
           accessToken={ sfSession.accessToken }
           instanceUrl={ sfSession.instanceUrl }
         />
-        <button onClick={ () => setSfSession({ isAuthenticated: false }) } style={ { marginTop: '20px' } }>
+
+        <button
+          onClick={ () => setSfSession({ isAuthenticated: false }) }
+          style={ { marginTop: '20px', padding: '10px' } }
+        >
           Logout
         </button>
       </div>
@@ -71,12 +79,16 @@ function App() {
         value={ emailInput }
         onChange={ (e) => setEmailInput(e.target.value) }
         placeholder="user@example.com"
-        style={ { padding: '10px', width: '250px' } }
+        style={ { padding: '10px', width: '250px', marginRight: '10px' } }
       />
-      <button onClick={ handleSilentSSO } disabled={ loading } style={ { marginLeft: '10px' } }>
+      <button
+        onClick={ handleSilentSSO }
+        disabled={ loading }
+        style={ { padding: '10px 20px', cursor: 'pointer' } }
+      >
         { loading ? "Verifying..." : "Log In" }
       </button>
-      { errorMsg && <p style={ { color: 'red' } }>{ errorMsg }</p> }
+      { errorMsg && <p style={ { color: 'red', marginTop: '10px' } }>{ errorMsg }</p> }
     </div>
   );
 }
