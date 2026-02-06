@@ -10,17 +10,29 @@ const LightningContainer = ({ accessToken, instanceUrl }) => {
             return;
         }
 
-        console.log("⚡ initializing Lightning Out...");
+        console.log("initializing Lightning Out 2.0...");
+        console.log('-> Target App: c:LightningOutApp');
+        console.log('-> Target Component: c:helloWorldLwc');
 
+        // 1. Initialize your specific Lightning Out App
         window.$Lightning.use(
-            "c:SsoLOApp", // Your Aura App Name
+            "c:LightningOutApp",
             function () {
+                // 2. Create your Hello World LWC
                 window.$Lightning.createComponent(
-                    "c:yourLwcComponent", // Your LWC Name
-                    {},
+                    "c:helloWorldLwc",
+                    {
+                        // Optional: Pass data to your LWC @api properties here
+                        message: "Hello from React!"
+                    },
                     containerRef.current,
-                    function (cmp) {
-                        console.log("✅ LWC Created!");
+                    function (cmp, status, errorMessage) {
+                        if (status === "SUCCESS") {
+                            console.log("helloWorldLwc Created Successfully!");
+                        } else {
+                            console.error("CreateComponent Error:", errorMessage);
+                            setError("Failed to load LWC: " + errorMessage);
+                        }
                     }
                 );
             },
@@ -31,9 +43,11 @@ const LightningContainer = ({ accessToken, instanceUrl }) => {
 
     return (
         <div style={ { padding: '20px', border: '1px solid #ddd', marginTop: '20px' } }>
-            <h3>Salesforce LWC</h3>
-            { error && <div style={ { color: 'red' } }>{ error }</div> }
-            <div ref={ containerRef }></div>
+            <h3>Salesforce Lightning Out 2.0</h3>
+            { error && <div style={ { color: 'red', fontWeight: 'bold' } }>{ error }</div> }
+
+            {/* The helloWorldLwc will render inside this div */ }
+            <div ref={ containerRef } id="lightning-container" style={ { minHeight: '200px' } }></div>
         </div>
     );
 };

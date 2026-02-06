@@ -21,3 +21,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.env
+server/server.key
+server/server.crt
+server/server.pass.key

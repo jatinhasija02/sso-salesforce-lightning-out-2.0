@@ -3,11 +3,10 @@ import axios from 'axios';
 import LightningContainer from './components/LightningContainer';
 
 function App() {
-  const [emailInput, setEmailInput] = useState("hasijajassi02@gmail.com");
+  const [emailInput, setEmailInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // State for Salesforce Session
   const [sfSession, setSfSession] = useState({
     isAuthenticated: false,
     accessToken: null,
@@ -19,53 +18,52 @@ function App() {
     setErrorMsg("");
 
     try {
-      console.log(`🔵 Initiating SSO for: ${emailInput}`);
+      console.log(`Requesting SSO for: ${emailInput}`);
 
-      // Call our Unified Backend Endpoint
-      const response = await axios.post('http://localhost:8080/api/sso-login', {
+      // FIXED: Removed http://localhost:8080. 
+      // Vercel will automatically route /api to your server/index.js
+      const response = await axios.post('/api/sso-login', {
         email: emailInput
       });
 
-      console.log("Backend Response:", response.data);
-
       if (response.data.success) {
-        // Success! We have the token.
+        console.group("SECURITY HANDSHAKE SUCCESS");
+        console.log("1. Access Token Received");
+        console.log("2. Instance URL:", response.data.instanceUrl);
+        console.log("3. FRONTDOOR URL (Magic Link):", response.data.frontdoorUrl);
+        console.groupEnd();
+
         setSfSession({
           isAuthenticated: true,
           accessToken: response.data.accessToken,
           instanceUrl: response.data.instanceUrl
         });
       } else {
-        // Failed Logic (User not found in Auth0 OR Salesforce)
         setErrorMsg(response.data.message || "Login failed.");
       }
     } catch (err) {
-      console.error("System Error:", err);
-      setErrorMsg("Connection Error. Is the backend server running?");
+      console.error("Connection Error:", err);
+      setErrorMsg("Backend connection failed. Ensure the server is running.");
     } finally {
       setLoading(false);
     }
   };
 
   // --- RENDER ---
-
-  // SCENARIO 1: LOGGED IN -> SHOW SALESFORCE COMPONENT
   if (sfSession.isAuthenticated) {
     return (
       <div style={ { textAlign: 'center', marginTop: '50px' } }>
-        <h1>✅ SSO Complete</h1>
-        <p>User validated in Auth0 & Salesforce.</p>
+        <h1>✅ SSO Validated</h1>
+        <p>Check console for Frontdoor URL.</p>
 
-        {/* Helper Component to Render LWC */ }
         <LightningContainer
           accessToken={ sfSession.accessToken }
           instanceUrl={ sfSession.instanceUrl }
         />
 
-        <br />
         <button
-          onClick={ () => setSfSession({ isAuthenticated: false, accessToken: null }) }
-          style={ { padding: '10px 20px', cursor: 'pointer', marginTop: '20px' } }
+          onClick={ () => setSfSession({ isAuthenticated: false }) }
+          style={ { marginTop: '20px', padding: '10px' } }
         >
           Logout
         </button>
@@ -73,12 +71,9 @@ function App() {
     );
   }
 
-  // SCENARIO 2: LOGIN SCREEN
   return (
     <div style={ { textAlign: 'center', marginTop: '50px' } }>
-      <h2>Unified SSO Login</h2>
-      <p>Checks Auth0 + Salesforce silently.</p>
-
+      <h2>SSO + Lightning 2.0</h2>
       <input
         type="email"
         value={ emailInput }
@@ -91,10 +86,9 @@ function App() {
         disabled={ loading }
         style={ { padding: '10px 20px', cursor: 'pointer' } }
       >
-        { loading ? "Verifying..." : "Enter App" }
+        { loading ? "Verifying..." : "Log In" }
       </button>
-
-      { errorMsg && <p style={ { color: 'red', marginTop: '15px', fontWeight: 'bold' } }>{ errorMsg }</p> }
+      { errorMsg && <p style={ { color: 'red', marginTop: '10px' } }>{ errorMsg }</p> }
     </div>
   );
 }

@@ -1,4 +1,3 @@
-// src/components/AuthButton.jsx
 import React from 'react';
 import { useOktaAuth } from '@okta/okta-react';
 
@@ -14,11 +13,11 @@ const AuthButton = () => {
 
   return (
     <div>
-      {authState.isAuthenticated ? (
-        <button onClick={handleLogout}>Logout</button>
+      { authState.isAuthenticated ? (
+        <button onClick={ handleLogout }>Logout</button>
       ) : (
-        <button onClick={handleLogin}>Login</button>
-      )}
+        <button onClick={ handleLogin }>Login</button>
+      ) }
     </div>
   );
 };
