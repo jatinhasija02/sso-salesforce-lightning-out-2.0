@@ -34,10 +34,10 @@ const LightningContainer = ({ frontdoorUrl }) => {
             ></lightning-out-application>
 
             <c-hello-world-lwc></c-hello-world-lwc>
-            {/* { isReady ? (
+            { isReady ? (<p>Ready to Secure Connection...</p>
             ) : (
                 <p>Establishing Secure Connection...</p>
-            ) } */}
+            ) }
         </div>
     );
 };
