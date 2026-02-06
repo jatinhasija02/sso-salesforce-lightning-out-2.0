@@ -1,16 +1,15 @@
 {
-  "name": "backend",
+  "name": "sso-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Salesforce SSO Backend",
   "license": "ISC",
-  "author": "",
+  "main": "sso-login.js",
   "type": "commonjs",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "author": "",
   "dependencies": {
-    "axios": "^1.13.4",
+    "axios": "^1.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "querystring": "^0.2.1",
     "cors": "^2.8.6",
     "express": "^5.2.1"
   }
