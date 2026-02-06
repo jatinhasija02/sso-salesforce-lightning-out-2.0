@@ -28,7 +28,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
 
             {/* The core LO 2.0 Element */ }
             <lightning-out-application
-                app-name="LightningOutApp"
+                app-id="1UsNS0000000CUD0A2"
                 frontdoor-url={ frontdoorUrl }
                 container-type="standard"
             ></lightning-out-application>
