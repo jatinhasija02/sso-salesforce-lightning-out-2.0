@@ -52,7 +52,6 @@ function App() {
   };
 
   // --- RENDER ---
-  // ... inside App component render
   if (sfSession.isAuthenticated) {
     return (
       <div style={ { textAlign: 'center', marginTop: '50px' } }>
