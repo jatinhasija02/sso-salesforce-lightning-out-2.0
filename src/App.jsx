@@ -1,76 +1,82 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import LightningContainer from './components/LightningContainer';
 
 function App() {
   const [emailInput, setEmailInput] = useState("");
-  const [isLocallyAuthenticated, setIsLocallyAuthenticated] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleCheckAndBypass = async () => {
+  const [sfSession, setSfSession] = useState({
+    isAuthenticated: false,
+    accessToken: null,
+    instanceUrl: null
+  });
+
+  const handleSilentSSO = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      // 1. Ask your backend if the user exists in Auth0
-      const response = await axios.post('http://localhost:8080/api/check-user', { 
-        email: emailInput 
-      });
-      console.log(`Email searched: ${emailInput} | Found: ${response.data.exists}`);
-      console.log(`${response.config}`);
-      console.log(`==> , ${response.headers}`);
-      console.log(`==> , ${JSON.stringify(response)}`);
-      
-      if (response.data.exists) {
-        setIsLocallyAuthenticated(true);
-      }
-      // if (response.data.exists) {
-      //   console.log("✅ User verified. Initiating Salesforce background login...");
-      //   const auth0SforceUrl = `https://dev-sf4mdxnyt4bvy3np.us.auth0.com/authorize` + 
-      //                         `?client_id=n3aiMbhoqaQN9KfOvCvoOZ0BjxwppIhC` + 
-      //                         `&response_type=code` + 
-      //                         `&connection=Username-Password-Authentication` + 
-      //                         `&login_hint=${emailInput}` + 
-      //                         `&redirect_uri=https://algocirrus-b6-dev-ed.develop.my.salesforce.com`;
+      console.log(`🔵 Requesting SSO for: ${emailInput}`);
 
-      //   window.location.href = auth0SforceUrl;
-      // }
-       else {
-        setErrorMsg("Access Denied: You are not a registered user.");
+      // FIXED: Call the relative path so it works on your Vercel domain
+      const response = await axios.post('/api/sso-login', {
+        email: emailInput
+      });
+
+      if (response.data.success) {
+        console.group("🔐 SECURITY HANDSHAKE SUCCESS");
+        console.log("1. Access Token Received");
+        console.log("2. Instance URL:", response.data.instanceUrl);
+        console.log("3. 🚀 FRONTDOOR URL (Magic Link):", response.data.frontdoorUrl);
+        console.groupEnd();
+
+        setSfSession({
+          isAuthenticated: true,
+          accessToken: response.data.accessToken,
+          instanceUrl: response.data.instanceUrl
+        });
+      } else {
+        setErrorMsg(response.data.message || "Login failed.");
       }
     } catch (err) {
-      setErrorMsg("System Error: Could not verify user.");
+      console.error("Connection Error:", err);
+      setErrorMsg("Backend connection failed. Ensure environment variables are set in Vercel.");
     } finally {
       setLoading(false);
     }
   };
 
-  // IF LOGGED IN LOCALLY, SHOW THE APP CONTENT
-  if (isLocallyAuthenticated) {
+  if (sfSession.isAuthenticated) {
     return (
-      <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h1>✅ Access Granted</h1>
-        <p>Welcome back, {emailInput}!</p>
-        <button onClick={() => setIsLocallyAuthenticated(false)}>Logout</button>
+      <div style={ { textAlign: 'center', marginTop: '50px' } }>
+        <h1>✅ SSO Validated</h1>
+        <LightningContainer
+          accessToken={ sfSession.accessToken }
+          instanceUrl={ sfSession.instanceUrl }
+        />
+        <button onClick={ () => setSfSession({ isAuthenticated: false }) } style={ { marginTop: '20px' } }>
+          Logout
+        </button>
       </div>
     );
   }
 
-  // IF NOT LOGGED IN, SHOW THE EMAIL CHECK SCREEN
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h2>Enter Email to Enter App</h2>
-      <input 
-        type="email" 
-        value={emailInput}
-        onChange={(e) => setEmailInput(e.target.value)}
+    <div style={ { textAlign: 'center', marginTop: '50px' } }>
+      <h2>SSO + Lightning 2.0</h2>
+      <input
+        type="email"
+        value={ emailInput }
+        onChange={ (e) => setEmailInput(e.target.value) }
         placeholder="user@example.com"
-        style={{ padding: '10px', width: '250px' }}
+        style={ { padding: '10px', width: '250px' } }
       />
-      <button onClick={handleCheckAndBypass} disabled={loading}>
-        {loading ? "Checking..." : "Enter"}
+      <button onClick={ handleSilentSSO } disabled={ loading } style={ { marginLeft: '10px' } }>
+        { loading ? "Verifying..." : "Log In" }
       </button>
-      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+      { errorMsg && <p style={ { color: 'red' } }>{ errorMsg }</p> }
     </div>
   );
 }
