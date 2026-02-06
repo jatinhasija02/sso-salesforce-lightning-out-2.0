@@ -3,18 +3,11 @@ const jwt = require('jsonwebtoken');
 const querystring = require('querystring');
 
 module.exports = async (req, res) => {
-    // Only allow POST
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     const { email } = req.body;
-    if (!email) {
-        return res.status(400).json({ success: false, message: "Email is required." });
-    }
-
-    const searchEmail = email.toLowerCase().trim();
-
     const {
         AUTH0_DOMAIN,
         AUTH0_M2M_CLIENT_ID,
@@ -24,14 +17,23 @@ module.exports = async (req, res) => {
         SF_PRIVATE_KEY_CONTENT
     } = process.env;
 
-    // VALIDATION: Ensure the key exists in environment variables
     if (!SF_PRIVATE_KEY_CONTENT) {
-        console.error("CRITICAL: SF_PRIVATE_KEY_CONTENT is missing.");
-        return res.status(500).json({ success: false, message: "Server configuration error: Missing Private Key." });
+        return res.status(500).json({ success: false, message: "Server configuration error: Private Key missing." });
     }
 
-    // FIX: Convert literal "\n" strings into actual line breaks for the RSA parser
-    const SF_PRIVATE_KEY = SF_PRIVATE_KEY_CONTENT.replace(/\\n/g, '\n');
+    // --- NEW RSA KEY CLEANER ---
+    // This removes extra quotes, converts literal \n to real newlines, 
+    // and ensures the BEGIN/END headers exist on their own lines.
+    const cleanKey = (key) => {
+        return key
+            .replace(/^"|"$/g, '')             // Remove surrounding quotes if they exist
+            .replace(/\\n/g, '\n')              // Convert literal \n to real newlines
+            .replace(/-----BEGIN PRIVATE KEY-----/, '-----BEGIN PRIVATE KEY-----\n')
+            .replace(/-----END PRIVATE KEY-----/, '\n-----END PRIVATE KEY-----')
+            .replace(/\n+/g, '\n');             // Remove accidental double newlines
+    };
+
+    const SF_PRIVATE_KEY = cleanKey(SF_PRIVATE_KEY_CONTENT);
 
     try {
         // 1. Auth0 Search
@@ -43,23 +45,23 @@ module.exports = async (req, res) => {
         });
 
         const auth0UserRes = await axios.get(`${AUTH0_DOMAIN}/api/v2/users-by-email`, {
-            params: { email: searchEmail },
+            params: { email: email.toLowerCase().trim() },
             headers: { Authorization: `Bearer ${auth0TokenRes.data.access_token}` }
         });
 
         if (auth0UserRes.data.length === 0) {
-            return res.status(404).json({ success: false, message: "User not found in Auth0 database." });
+            return res.status(404).json({ success: false, message: "User not found in Auth0." });
         }
 
-        // 2. Salesforce JWT Signing - Using RS256 algorithm
+        // 2. Salesforce JWT Signing
         const jwtToken = jwt.sign(
             {
                 iss: SF_CLIENT_ID,
-                sub: searchEmail,
+                sub: email.toLowerCase().trim(),
                 aud: SF_LOGIN_URL,
                 exp: Math.floor(Date.now() / 1000) + 180
             },
-            SF_PRIVATE_KEY, // The multi-line RSA key
+            SF_PRIVATE_KEY,
             { algorithm: 'RS256' }
         );
 
@@ -72,22 +74,19 @@ module.exports = async (req, res) => {
             { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
         );
 
-        const accessToken = sfTokenRes.data.access_token;
-        const instanceUrl = sfTokenRes.data.instance_url;
-
         return res.status(200).json({
             success: true,
-            accessToken,
-            instanceUrl,
-            frontdoorUrl: `${instanceUrl}/secur/frontdoor.jsp?sid=${accessToken}`
+            accessToken: sfTokenRes.data.access_token,
+            instanceUrl: sfTokenRes.data.instance_url,
+            frontdoorUrl: `${sfTokenRes.data.instance_url}/secur/frontdoor.jsp?sid=${sfTokenRes.data.access_token}`
         });
 
     } catch (error) {
-        console.error("SSO Error:", error.response?.data || error.message);
+        console.error("SSO Error Detail:", error.response?.data || error.message);
         return res.status(500).json({
             success: false,
-            message: "Internal server error during handshake.",
-            details: error.response?.data || error.message
+            message: "Handshake failed.",
+            error: error.response?.data || error.message
         });
     }
 };
