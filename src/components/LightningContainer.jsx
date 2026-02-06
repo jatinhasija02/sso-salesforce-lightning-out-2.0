@@ -53,8 +53,8 @@ const LightningContainer = ({ frontdoorUrl }) => {
                 components="c-hello-world-lwc"
             ></lightning-out-application>
 
+            <c-hello-world-lwc></c-hello-world-lwc>
             <div style={ { display: isReady ? 'block' : 'none' } }>
-                <c-hello-world-lwc></c-hello-world-lwc>
             </div>
 
             { !isReady && <p>🔄 Establishing Secure Bridge (Check Trusted Domains if stuck)...</p> }
