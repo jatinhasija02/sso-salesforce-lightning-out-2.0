@@ -32,6 +32,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
                 app-id="1UsNS0000000CUD0A2"
                 frontdoor-url={ frontdoorUrl }
                 container-type="standard"
+                components = "c-hello-world-lwc"
             ></lightning-out-application>
 
             <c-hello-world-lwc></c-hello-world-lwc>
