@@ -1,76 +1,100 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import LightningContainer from './components/LightningContainer';
 
 function App() {
-  const [emailInput, setEmailInput] = useState("");
-  const [isLocallyAuthenticated, setIsLocallyAuthenticated] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [emailInput, setEmailInput] = useState("hasijajassi02@gmail.com");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleCheckAndBypass = async () => {
+  // State for Salesforce Session
+  const [sfSession, setSfSession] = useState({
+    isAuthenticated: false,
+    accessToken: null,
+    instanceUrl: null
+  });
+
+  const handleSilentSSO = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      // 1. Ask your backend if the user exists in Auth0
-      const response = await axios.post('http://localhost:8080/api/check-user', { 
-        email: emailInput 
-      });
-      console.log(`Email searched: ${emailInput} | Found: ${response.data.exists}`);
-      console.log(`${response.config}`);
-      console.log(`==> , ${response.headers}`);
-      console.log(`==> , ${JSON.stringify(response)}`);
-      
-      if (response.data.exists) {
-        setIsLocallyAuthenticated(true);
-      }
-      // if (response.data.exists) {
-      //   console.log("✅ User verified. Initiating Salesforce background login...");
-      //   const auth0SforceUrl = `https://dev-sf4mdxnyt4bvy3np.us.auth0.com/authorize` + 
-      //                         `?client_id=n3aiMbhoqaQN9KfOvCvoOZ0BjxwppIhC` + 
-      //                         `&response_type=code` + 
-      //                         `&connection=Username-Password-Authentication` + 
-      //                         `&login_hint=${emailInput}` + 
-      //                         `&redirect_uri=https://algocirrus-b6-dev-ed.develop.my.salesforce.com`;
+      console.log(`🔵 Initiating SSO for: ${emailInput}`);
 
-      //   window.location.href = auth0SforceUrl;
-      // }
-       else {
-        setErrorMsg("Access Denied: You are not a registered user.");
+      // Call our Unified Backend Endpoint
+      const response = await axios.post('http://localhost:8080/api/sso-login', {
+        email: emailInput
+      });
+
+      console.log("Backend Response:", response.data);
+
+      if (response.data.success) {
+        // Success! We have the token.
+        setSfSession({
+          isAuthenticated: true,
+          accessToken: response.data.accessToken,
+          instanceUrl: response.data.instanceUrl
+        });
+      } else {
+        // Failed Logic (User not found in Auth0 OR Salesforce)
+        setErrorMsg(response.data.message || "Login failed.");
       }
     } catch (err) {
-      setErrorMsg("System Error: Could not verify user.");
+      console.error("System Error:", err);
+      setErrorMsg("Connection Error. Is the backend server running?");
     } finally {
       setLoading(false);
     }
   };
 
-  // IF LOGGED IN LOCALLY, SHOW THE APP CONTENT
-  if (isLocallyAuthenticated) {
+  // --- RENDER ---
+
+  // SCENARIO 1: LOGGED IN -> SHOW SALESFORCE COMPONENT
+  if (sfSession.isAuthenticated) {
     return (
-      <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h1>✅ Access Granted</h1>
-        <p>Welcome back, {emailInput}!</p>
-        <button onClick={() => setIsLocallyAuthenticated(false)}>Logout</button>
+      <div style={ { textAlign: 'center', marginTop: '50px' } }>
+        <h1>✅ SSO Complete</h1>
+        <p>User validated in Auth0 & Salesforce.</p>
+
+        {/* Helper Component to Render LWC */ }
+        <LightningContainer
+          accessToken={ sfSession.accessToken }
+          instanceUrl={ sfSession.instanceUrl }
+        />
+
+        <br />
+        <button
+          onClick={ () => setSfSession({ isAuthenticated: false, accessToken: null }) }
+          style={ { padding: '10px 20px', cursor: 'pointer', marginTop: '20px' } }
+        >
+          Logout
+        </button>
       </div>
     );
   }
 
-  // IF NOT LOGGED IN, SHOW THE EMAIL CHECK SCREEN
+  // SCENARIO 2: LOGIN SCREEN
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h2>Enter Email to Enter App</h2>
-      <input 
-        type="email" 
-        value={emailInput}
-        onChange={(e) => setEmailInput(e.target.value)}
+    <div style={ { textAlign: 'center', marginTop: '50px' } }>
+      <h2>Unified SSO Login</h2>
+      <p>Checks Auth0 + Salesforce silently.</p>
+
+      <input
+        type="email"
+        value={ emailInput }
+        onChange={ (e) => setEmailInput(e.target.value) }
         placeholder="user@example.com"
-        style={{ padding: '10px', width: '250px' }}
+        style={ { padding: '10px', width: '250px', marginRight: '10px' } }
       />
-      <button onClick={handleCheckAndBypass} disabled={loading}>
-        {loading ? "Checking..." : "Enter"}
+      <button
+        onClick={ handleSilentSSO }
+        disabled={ loading }
+        style={ { padding: '10px 20px', cursor: 'pointer' } }
+      >
+        { loading ? "Verifying..." : "Enter App" }
       </button>
-      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+
+      { errorMsg && <p style={ { color: 'red', marginTop: '15px', fontWeight: 'bold' } }>{ errorMsg }</p> }
     </div>
   );
 }
