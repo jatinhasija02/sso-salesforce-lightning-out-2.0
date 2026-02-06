@@ -4,8 +4,6 @@ const LightningContainer = ({ frontdoorUrl }) => {
     const [isReady, setIsReady] = useState(false);
     const [authError, setAuthError] = useState(false);
 
-    // This is the 18-digit ID from your Lightning Out 2.0 App Manager
-    const APP_ID = "1Usfi00000000xxxxx";
 
     useEffect(() => {
         const lightningApp = document.getElementById('lightning-app');
