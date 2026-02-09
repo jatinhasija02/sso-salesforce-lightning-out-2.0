@@ -1,73 +1,52 @@
 import React, { useEffect, useState } from 'react';
 
-const LightningContainer = ({ frontdoorUrl }) => {
+const LightningContainer = ({ frontdoorUrl, userEmail }) => {
     const [isReady, setIsReady] = useState(false);
-    const [authError, setAuthError] = useState(false);
+    const [isCleaning, setIsCleaning] = useState(false);
 
     useEffect(() => {
-        // Initial Debug Logs
-        console.group("LO 2.0 Debug: Initialization");
-        console.log("Current Origin:", window.location.origin);
-        console.log("Frontdoor URL Provided:", frontdoorUrl ? "Yes (Masked for safety)" : "No");
-        console.groupEnd();
+        const resetSessionAndLoad = async () => {
+            console.log(`Switching user to: ${userEmail}`);
+            setIsReady(false);
+            setIsCleaning(true);
 
-        const loApp = document.getElementById('lightning-app');
-
-        const handleReady = () => {
-            console.log("✅ LO 2.0 EVENT: lo.application.ready - Bridge Established");
-            setIsReady(true);
-        };
-
-        const handleError = (error) => {
-            console.group("❌ LO 2.0 EVENT: lo.application.error");
-            console.error("Error Detail:", error.detail);
-            console.log("Note: This often means the domain is not in Salesforce 'Trusted Domains for Inline Frames'.");
-            console.groupEnd();
-            setAuthError(true);
-        };
-
-        if (loApp) {
-            loApp.addEventListener('lo.application.ready', handleReady);
-            loApp.addEventListener('lo.application.error', handleError);
-        }
-
-        return () => {
-            if (loApp) {
-                loApp.removeEventListener('lo.application.ready', handleReady);
-                loApp.removeEventListener('lo.application.error', handleError);
+            // STEP 1: SILENT LOGOUT
+            // This clears the 'sid' cookie from the browser for the Salesforce domain
+            try {
+                // We use 'no-cors' because we don't need to read the response, 
+                // we just need the browser to hit the URL to drop the cookies.
+                await fetch(`${new URL(frontdoorUrl).origin}/secur/logout.jsp`, { mode: 'no-cors' });
+                console.log("Old session cleared.");
+            } catch (e) {
+                console.warn("Logout ping failed, proceeding anyway...");
             }
-        };
-    }, [frontdoorUrl]);
 
-    if (authError) {
-        return (
-            <div style={ { padding: '20px', color: 'red', border: '1px solid red' } }>
-                <p>⚠️ Authentication failed. Salesforce blocked the connection.</p>
-                <p style={ { fontSize: '12px' } }>Open the Browser Console (F12) to see the specific error detail.</p>
-                <a href={ frontdoorUrl } target="_blank" rel="noreferrer" style={ { color: 'blue', textDecoration: 'underline' } }>
-                    Click here to manually authorize
-                </a>
-            </div>
-        );
+            // Small delay to ensure browser handles cookie deletion
+            setTimeout(() => {
+                setIsCleaning(false);
+            }, 800);
+        };
+
+        if (frontdoorUrl) {
+            resetSessionAndLoad();
+        }
+    }, [frontdoorUrl, userEmail]); // Runs whenever the user or URL changes
+
+    if (isCleaning) {
+        return <p>🔒 Switching secure sessions...</p>;
     }
 
     return (
-        <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px', minHeight: '200px' } }>
-            <h3>Salesforce Lightning Out 2.0</h3>
-
+        <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
             <lightning-out-application
                 id="lightning-app"
                 app-id="1UsNS0000000CUD0A2"
                 frontdoor-url={ frontdoorUrl }
                 components="c-hello-world-lwc"
-                container-type="standard"
+                onready={ () => setIsReady(true) }
             ></lightning-out-application>
 
-            { isReady ? (
-                <c-hello-world-lwc></c-hello-world-lwc>
-            ) : (
-                <p>🔄 Establishing Secure Bridge... Check console for status.</p>
-            ) }
+            { isReady ? <c-hello-world-lwc></c-hello-world-lwc> : <p>🔄 Loading LWC for { userEmail }...</p> }
         </div>
     );
 };
