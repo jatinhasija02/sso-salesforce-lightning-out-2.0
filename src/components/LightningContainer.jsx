@@ -8,7 +8,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
         // Initial Debug Logs
         console.group("LO 2.0 Debug: Initialization");
         console.log("Current Origin:", window.location.origin);
-        console.log("Frontdoor URL Provided:", frontdoorUrl ? "Yes (Masked for safety)" : "No");
+        console.log("Frontdoor URL Provided:", frontdoorUrl ? JSON.stringify(frontdoorUrl) : "No");
         console.groupEnd();
 
         const loApp = document.getElementById('lightning-app');
