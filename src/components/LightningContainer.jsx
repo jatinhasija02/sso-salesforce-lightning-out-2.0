@@ -5,7 +5,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
 
     // BUILD THE AUTH0 LINK
     const domain = "dev-sf4mdxnyt4bvy3np.us.auth0.com";
-    const clientId = "pkJRoRqgVGgxE1E5pbNfRGibCdoIQ2jC";
+    const clientId = "SPlY0dELRN3uccQkHWAitNVM2v0UWJPv";
     const callback = encodeURIComponent(window.location.origin); // Dynamic redirect back to your app
 
     const AUTH0_SSO_URL = `https://${domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${callback}&scope=openid%20profile%20email`;
