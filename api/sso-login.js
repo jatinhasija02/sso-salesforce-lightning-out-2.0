@@ -36,6 +36,7 @@ module.exports = async (req, res) => {
     const SF_PRIVATE_KEY = cleanKey(SF_PRIVATE_KEY_CONTENT);
 
     try {
+        console.log("Starting SSO Handshake for:", email);
         // 1. Auth0 Search
         const auth0TokenRes = await axios.post(`${AUTH0_DOMAIN}/oauth/token`, {
             client_id: AUTH0_M2M_CLIENT_ID,
@@ -64,6 +65,7 @@ module.exports = async (req, res) => {
             SF_PRIVATE_KEY,
             { algorithm: 'RS256' }
         );
+        console.log("JWT Signed successfully.");
 
         // 3. Salesforce Token Exchange
         const sfTokenRes = await axios.post(`${SF_LOGIN_URL}/services/oauth2/token`,
@@ -73,7 +75,8 @@ module.exports = async (req, res) => {
             }),
             { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
         );
-
+        console.log("Salesforce Token Exchange: SUCCESS");
+        console.log("Instance URL:", sfTokenRes.data.instance_url);
         return res.status(200).json({
             success: true,
             accessToken: sfTokenRes.data.access_token,
