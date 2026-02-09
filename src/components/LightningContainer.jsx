@@ -4,26 +4,31 @@ const LightningContainer = ({ frontdoorUrl }) => {
     const [isReady, setIsReady] = useState(false);
     const [authError, setAuthError] = useState(false);
 
-    useEffect(() => {
-        // Initial Debug Logs
-        console.group("LO 2.0 Debug: Initialization");
-        console.log("Current Origin:", window.location.origin);
-        console.log("Frontdoor URL Provided:", frontdoorUrl ? JSON.stringify(frontdoorUrl) : "No");
-        console.groupEnd();
+    // Hardcoded redirect link
+    const FALLBACK_URL = "https://login.salesforce.com/";
 
+    useEffect(() => {
         const loApp = document.getElementById('lightning-app');
 
+        // 1. START A TIMER
+        // If 'isReady' doesn't become true in 7 seconds, redirect the user.
+        const redirectTimer = setTimeout(() => {
+            if (!isReady) {
+                console.warn("SSO Bridge failed to connect. Redirecting to manual login...");
+                window.location.href = FALLBACK_URL; // <--- HARD REDIRECT
+            }
+        }, 7000); // 7 seconds timeout
+
         const handleReady = () => {
-            console.log("✅ LO 2.0 EVENT: lo.application.ready - Bridge Established");
+            console.log("✅ LO 2.0 EVENT: lo.application.ready");
             setIsReady(true);
+            clearTimeout(redirectTimer); // Stop the timer if we succeed!
         };
 
         const handleError = (error) => {
-            console.group("❌ LO 2.0 EVENT: lo.application.error");
-            console.error("Error Detail:", error.detail);
-            console.log("Note: This often means the domain is not in Salesforce 'Trusted Domains for Inline Frames'.");
-            console.groupEnd();
+            console.error("❌ LO 2.0 ERROR", error.detail);
             setAuthError(true);
+            clearTimeout(redirectTimer); // Stop timer and show the error UI instead
         };
 
         if (loApp) {
@@ -32,27 +37,27 @@ const LightningContainer = ({ frontdoorUrl }) => {
         }
 
         return () => {
+            clearTimeout(redirectTimer); // Cleanup on unmount
             if (loApp) {
                 loApp.removeEventListener('lo.application.ready', handleReady);
                 loApp.removeEventListener('lo.application.error', handleError);
             }
         };
-    }, [frontdoorUrl]);
+    }, [frontdoorUrl, isReady]);
 
     if (authError) {
         return (
-            <div style={ { padding: '20px', color: 'red', border: '1px solid red' } }>
-                <p>⚠️ Authentication failed. Salesforce blocked the connection.</p>
-                <p style={ { fontSize: '12px' } }>Open the Browser Console (F12) to see the specific error detail.</p>
-                <a href={ frontdoorUrl } target="_blank" rel="noreferrer" style={ { color: 'blue', textDecoration: 'underline' } }>
-                    Click here to manually authorize
-                </a>
+            <div style={ { padding: '20px', color: 'red' } }>
+                <p>⚠️ Salesforce blocked the connection.</p>
+                <button onClick={ () => window.location.href = FALLBACK_URL }>
+                    Go to Login Page
+                </button>
             </div>
         );
     }
 
     return (
-        <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px', minHeight: '200px' } }>
+        <div style={ { padding: '20px', border: '1px solid #ccc', marginTop: '20px' } }>
             <h3>Salesforce Lightning Out 2.0</h3>
 
             <lightning-out-application
@@ -66,7 +71,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
             { isReady ? (
                 <c-hello-world-lwc></c-hello-world-lwc>
             ) : (
-                <p>🔄 Establishing Secure Bridge... Check console for status.</p>
+                <p>🔄 Establishing Secure Bridge... If this takes too long, you will be redirected.</p>
             ) }
         </div>
     );
