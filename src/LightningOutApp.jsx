@@ -71,6 +71,7 @@ const LightningOutApp = () => {
       <lightning-out-application
         app-id="1UsNS0000000CUD0A2"
         components="c-hello-world-lwc"
+        container-type="standard"
       ></lightning-out-application>
 
       <div style={ { marginTop: '20px', borderTop: '1px solid #ccc' } }>
