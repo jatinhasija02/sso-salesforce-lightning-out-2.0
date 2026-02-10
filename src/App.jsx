@@ -34,6 +34,8 @@ function App() {
 
     if (code && savedEmail) {
       console.log("[LOG] ✅ Auth0 Code Detected. Cleaning URL and fetching session...");
+      console.log("🎁 [AUTH0 DATA] Received Authorization Code:", code);
+      console.log("📧 [LOCAL STORAGE] Email associated with this session:", savedEmail);
       // 1. Remove code from URL immediately to prevent re-processing
       window.history.replaceState({}, document.title, window.location.pathname);
 
