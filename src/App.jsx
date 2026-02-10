@@ -9,33 +9,28 @@ function App() {
   const [sfSession, setSfSession] = useState({ isAuthenticated: false, frontdoorUrl: null });
 
   const getSalesforceSession = useCallback(async (email) => {
-    if (!email) return;
     setLoading(true);
-    console.log(`[LOG] 🛰️ Fetching Frontdoor for: ${email}`);
     try {
       const response = await axios.post('/api/sso-login', { email });
       if (response.data.success) {
         const { frontdoorUrl } = response.data;
 
-        console.log("[LOG] 🚀 Initializing Top-Level Session Handshake...");
+        // 1. Establish the Cookie via a Top-Level window (Bypasses Frame-Ancestors)
+        const loginWindow = window.open(frontdoorUrl, 'sf_session_fix', 'width=1,height=1,left=-1000,top=-1000');
 
-        // APPROACH: Hidden Window Handshake
-        // We open the frontdoor URL in a small popup that self-closes.
-        // This bypasses 'frame-ancestors' because it's a window, not an iframe.
-        const loginWindow = window.open(frontdoorUrl, 'sf_login', 'width=1,height=1,left=-1000,top=-1000');
-
-        // Give it 3 seconds to set the cookie, then close it and render the LWC
+        // 2. Wait for the cookie to "stick" (usually 2-3 seconds)
         setTimeout(() => {
           if (loginWindow) loginWindow.close();
+
+          // 3. Now that the cookie is in the browser, render the LWC container
           setSfSession({ isAuthenticated: true, frontdoorUrl: frontdoorUrl });
+          setLoading(false);
         }, 3000);
       }
     } catch (err) {
       setErrorMsg("Backend connection failed.");
-    } finally {
       setLoading(false);
     }
-
   }, []);
 
   useEffect(() => {
