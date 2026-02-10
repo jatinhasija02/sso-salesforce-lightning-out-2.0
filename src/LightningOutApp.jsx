@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const LightningOutApp = () => {
-  const TARGET_USER = "hasijajassi02@gmail.com";
+  const TARGET_USER = "hasijajassi02+user6@gmail.com";
   const [email, setEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
   const [logStatus, setLogStatus] = useState("");
