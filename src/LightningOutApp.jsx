@@ -7,70 +7,66 @@ const LightningOutApp = () => {
   const [logStatus, setLogStatus] = useState("");
 
   const startLWC = async (userEmail) => {
-    console.log("Button clicked. Starting LWC process for:", userEmail);
-    setLogStatus(`Step 1: Authenticating for ${TARGET_USER}...`);
+    console.log("--- Starting LWC Process ---");
+    setLogStatus("Step 1: Contacting Vercel API...");
 
     try {
       const response = await fetch(`/api/get-url?username=${encodeURIComponent(TARGET_USER)}`);
+      console.log("API Fetch Status:", response.status);
 
-      console.log("API Response Status:", response.status);
       const result = await response.json();
 
       if (!result.success) {
-        console.error("Backend reported failure:", result);
-        throw new Error(result.error || "Auth Failed");
+        // Log the detailed Salesforce error to browser console
+        console.error("Salesforce Auth Failure Details:", result.salesforce_details);
+        const errorDesc = result.salesforce_details?.error_description || result.error;
+        throw new Error(`SF Auth Failed: ${errorDesc}`);
       }
 
-      console.log("Backend Success! Secure URL obtained.");
-      setLogStatus("Step 2: Session active. Loading script...");
+      setLogStatus("Step 2: Session active. Loading Salesforce script...");
+      console.log("Instance URL for script:", result.instanceUrl);
 
       const script = document.createElement("script");
       script.src = `${result.instanceUrl}/lightning/lightning.out.latest/index.iife.prod.js`;
       script.async = true;
 
       script.onload = () => {
-        console.log("Salesforce script loaded. Initializing application...");
-        setLogStatus("Step 3: Script ready. Bootstrapping LWC...");
+        console.log("Salesforce script loaded. Bootstrapping component...");
+        setLogStatus("Step 3: Initializing LWC...");
 
         const loApp = document.querySelector("lightning-out-application");
         if (loApp) {
           loApp.setAttribute("frontdoor-url", result.url);
           setCurrentEmail(userEmail);
-          setLogStatus("LWC Loaded successfully.");
+          setLogStatus("Success: LWC Loaded.");
           console.log("LWC process complete.");
-        } else {
-          console.error("Could not find <lightning-out-application> in DOM");
         }
       };
 
-      script.onerror = (e) => {
-        console.error("Failed to load the Salesforce script from:", script.src);
-        setLogStatus("Error: Failed to load Salesforce script.");
+      script.onerror = () => {
+        console.error("Failed to load script from:", script.src);
+        setLogStatus("Error: Salesforce script failed to load.");
       };
 
       document.body.appendChild(script);
     } catch (err) {
-      console.error("Frontend process error:", err);
+      console.error("Frontend Error:", err.message);
       setLogStatus("Error: " + err.message);
     }
   };
 
   return (
     <div style={ { padding: "20px" } }>
-      <div style={ { marginBottom: "16px" } }>
-        <input
-          type="email"
-          placeholder="Enter email"
-          value={ email }
-          onChange={ (e) => setEmail(e.target.value) }
-          style={ { padding: "8px", width: "400px", marginRight: "10px" } }
-        />
-        <button onClick={ () => email ? startLWC(email) : alert("Enter email") }>
-          Launch LWC
-        </button>
-      </div>
+      <input
+        type="email"
+        placeholder="Enter email"
+        value={ email }
+        onChange={ (e) => setEmail(e.target.value) }
+        style={ { padding: "8px", width: "400px", marginRight: "10px" } }
+      />
+      <button onClick={ () => email ? startLWC(email) : alert("Enter email") }>Launch LWC</button>
 
-      <p style={ { color: "blue", fontWeight: "bold" } }>Status: { logStatus || "Waiting for user..." }</p>
+      <p style={ { color: "blue", fontWeight: "bold" } }>Status: { logStatus || "Idle" }</p>
 
       <lightning-out-application
         app-id="1UsNS0000000CUD0A2"
