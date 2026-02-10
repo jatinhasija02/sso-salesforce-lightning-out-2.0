@@ -18,17 +18,17 @@ export default async function handler(req, res) {
     /* ================= 4. Create JWT ================= */
     const jwtToken = jwt.sign(
       {
-        iss: import.meta.env.SF_CLIENT_ID,     // Connected App client id
+        iss: process.env.SF_CLIENT_ID,     // Connected App client id
         sub: username,        // 👈 USER FROM UI
-        aud: import.meta.env.SF_LOGIN_URL,        // Salesforce login URL
+        aud: process.env.SF_LOGIN_URL,        // Salesforce login URL
         exp: Math.floor(Date.now() / 1000) + 300
       },
-      import.meta.env.SF_PRIVATE_KEY_CONTENT,
+      process.env.SF_PRIVATE_KEY_CONTENT,
       { algorithm: "RS256" }
     );
 
     /* ================= 5. Get Salesforce Access Token ================= */
-    const sfRes = await fetch(`${import.meta.env.SF_LOGIN_URL}/services/oauth2/token`, {
+    const sfRes = await fetch(`${process.env.SF_LOGIN_URL}/services/oauth2/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
