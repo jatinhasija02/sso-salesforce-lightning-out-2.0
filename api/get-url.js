@@ -1,15 +1,20 @@
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
-  // Set response headers for JSON and CORS
   res.setHeader("Content-Type", "application/json");
+
+  console.log("--- 1. Backend Request Received ---");
 
   try {
     const { username } = req.query;
+    console.log(`Targeting Username: ${username}`);
 
     if (!username) {
+      console.error("Error: Missing username in query string");
       return res.status(400).json({ success: false, error: "Username is required" });
     }
+
+    // Hardcoded Credentials
     const SF_PRIVATE_KEY_CONTENT = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDAb9VpMLVyEvN3
 l91x5ZzlwsY0tbUrR0+nNE+nMafTENNLVUgzqS3E97djJ6lWFxenwJlqhASgN6zc
@@ -37,29 +42,28 @@ tDO5IRG+Dd9r32CMacCzOU2e2frH/zLwpSlbCBhRy0n/a8OXDCfq68V66pBfsou2
 uwyytLCbnrxGUNtfpk3mrdeZm92PWMvIjw8zD+G26vkGO5FILI6gCRf3OdTqpOqU
 XIyhXRhekoj53krOTfBD1IR7cRRFrqFT8IekjKG/7Bw+1vU8ymqR2U6PUYpF8SbZ
 0051VAlaS/uUCLg8Aspy6kk=
------END PRIVATE KEY-----
-`
+-----END PRIVATE KEY-----`;
+
     const SF_CLIENT_ID = '3MVG9VMBZCsTL9hnVO_6Q8ke.y8YH_PdvEaFgNFzWAELOYeUzsvkX3EwBJA31A1wP4MvYR.lFL4VsZpbWLd2H';
-    const SF_LOGIN_URL = 'https://login.salesforce.com'
+    const SF_LOGIN_URL = 'https://login.salesforce.com';
 
-    // 1. Fix Private Key: Vercel environment variables often mangle newlines.
-    const rawKey = SF_PRIVATE_KEY_CONTENT;
-    if (!rawKey) throw new Error("SF_PRIVATE_KEY_CONTENT is missing in Vercel settings");
-    const privateKey = rawKey.replace(/\\n/g, '\n');
+    console.log("--- 2. Generating JWT ---");
+    const privateKey = SF_PRIVATE_KEY_CONTENT.replace(/\\n/g, '\n');
 
-    /* ================= 2. Create JWT Assertion ================= */
     const jwtToken = jwt.sign(
       {
-        iss: SF_CLIENT_ID,     // Consumer Key from Connected App
-        sub: username,                    // Salesforce Username
-        aud: SF_LOGIN_URL,    // https://login.salesforce.com or test.salesforce.com
+        iss: SF_CLIENT_ID,
+        sub: username,
+        aud: SF_LOGIN_URL,
         exp: Math.floor(Date.now() / 1000) + 300
       },
       privateKey,
       { algorithm: "RS256" }
     );
+    console.log("JWT generated successfully.");
 
-    /* ================= 3. Get Access Token ================= */
+    /* ================= 3. Salesforce OAuth Call ================= */
+    console.log(`--- 3. Fetching OAuth Token from ${SF_LOGIN_URL} ---`);
     const sfRes = await fetch(`${SF_LOGIN_URL}/services/oauth2/token`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -70,11 +74,20 @@ XIyhXRhekoj53krOTfBD1IR7cRRFrqFT8IekjKG/7Bw+1vU8ymqR2U6PUYpF8SbZ
     });
 
     const authData = await sfRes.json();
+
     if (!sfRes.ok) {
-      return res.status(401).json({ success: false, salesforce_error: authData });
+      // CRITICAL LOG: This will tell you exactly why Salesforce said 401
+      console.error("Salesforce OAuth Error Details:", JSON.stringify(authData));
+      return res.status(401).json({
+        success: false,
+        error: "Salesforce Auth Failed",
+        salesforce_details: authData
+      });
     }
+    console.log("Salesforce OAuth successful. Instance URL:", authData.instance_url);
 
     /* ================= 4. Get Lightning Out Session ================= */
+    console.log("--- 4. Requesting Lightning Out Single Access ---");
     const loRes = await fetch(
       `${authData.instance_url}/services/oauth2/lightningoutsingleaccess`,
       {
@@ -84,18 +97,20 @@ XIyhXRhekoj53krOTfBD1IR7cRRFrqFT8IekjKG/7Bw+1vU8ymqR2U6PUYpF8SbZ
           "Content-Type": "application/x-www-form-urlencoded"
         },
         body: new URLSearchParams({
-          lightning_out_app_id: "1UsNS0000000CUD0A2" // Your 18-digit LoApp ID
+          lightning_out_app_id: "1UsNS0000000CUD0A2"
         })
       }
     );
 
     const loData = await loRes.json();
+    console.log("Lightning Out Response:", JSON.stringify(loData));
 
     if (!loData.frontdoor_uri) {
-      return res.status(500).json({ success: false, error: "Frontdoor URL not returned", details: loData });
+      console.error("Error: frontdoor_uri missing from loData");
+      return res.status(500).json({ success: false, error: "Frontdoor URL missing", details: loData });
     }
 
-    // Return the frontdoor URL and the instance URL for script loading
+    console.log("--- 5. Returning success to frontend ---");
     return res.status(200).json({
       success: true,
       url: loData.frontdoor_uri,
@@ -103,7 +118,7 @@ XIyhXRhekoj53krOTfBD1IR7cRRFrqFT8IekjKG/7Bw+1vU8ymqR2U6PUYpF8SbZ
     });
 
   } catch (err) {
-    console.error("GET-URL ERROR:", err.message);
+    console.error("CRITICAL BACKEND CRASH:", err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
