@@ -3,49 +3,43 @@ import React, { useEffect, useState } from 'react';
 const LightningContainer = ({ frontdoorUrl }) => {
     const [isReady, setIsReady] = useState(false);
 
-    // Auth0 Details
+    // AUTH0 CONFIG
     const domain = "dev-sf4mdxnyt4bvy3np.us.auth0.com";
     const clientId = "SPlY0dELRN3uccQkHWAitNVM2v0UWJPv";
     const callback = encodeURIComponent(window.location.origin);
-    const AUTH0_URL = `https://${domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${callback}&scope=openid%20profile%20email`;
+
+    // ADDED: prompt=login forces Auth0 to show the login screen every time
+    const FORCE_LOGIN_URL = `https://${domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${callback}&scope=openid%20profile%20email&prompt=login`;
 
     useEffect(() => {
         const loApp = document.getElementById('lightning-app');
 
         // Start a 6-second timer. 
+        // If Salesforce says "frame-ancestors 'none'", the bridge will hang.
         const timer = setTimeout(() => {
             if (!isReady) {
-                console.error("CSP Violation or Hang detected. Navigating to Auth0...");
-                window.location.href = AUTH0_URL;
+                console.error("CSP Violation Blocked Iframe. Forcing Hard Login...");
+                window.location.href = FORCE_LOGIN_URL;
             }
         }, 6000);
 
         const handleReady = () => {
-            console.log("✅ Bridge Established!");
+            console.log("✅ Salesforce Bridge Established!");
             setIsReady(true);
             clearTimeout(timer);
-            localStorage.setItem('has_retried', 'false'); // Success, clear retry status
-        };
-
-        const handleError = (err) => {
-            console.error("❌ Bridge Error:", err.detail);
-            clearTimeout(timer);
-            window.location.href = AUTH0_URL;
+            localStorage.removeItem('sso_retry_active');
         };
 
         if (loApp) {
             loApp.addEventListener('lo.application.ready', handleReady);
-            loApp.addEventListener('lo.application.error', handleError);
+            loApp.addEventListener('lo.application.error', () => {
+                clearTimeout(timer);
+                window.location.href = FORCE_LOGIN_URL;
+            });
         }
 
-        return () => {
-            clearTimeout(timer);
-            if (loApp) {
-                loApp.removeEventListener('lo.application.ready', handleReady);
-                loApp.removeEventListener('lo.application.error', handleError);
-            }
-        };
-    }, [isReady, AUTH0_URL]);
+        return () => clearTimeout(timer);
+    }, [isReady, FORCE_LOGIN_URL]);
 
     return (
         <div style={ { padding: '20px', border: '1px solid #ccc', minHeight: '300px' } }>
@@ -57,15 +51,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
                 container-type="standard"
             ></lightning-out-application>
 
-            { !isReady && (
-                <div style={ { marginTop: '50px' } }>
-                    <p>🔄 Connecting to Salesforce Bridge...</p>
-                    <p style={ { fontSize: '10px', color: 'gray' } }>
-                        If this fails due to CSP settings, we will attempt one automatic redirect.
-                    </p>
-                </div>
-            ) }
-
+            { !isReady && <p>🔄 Syncing Salesforce Session...</p> }
             { isReady && <c-hello-world-lwc></c-hello-world-lwc> }
         </div>
     );
