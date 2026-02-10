@@ -3,36 +3,34 @@ import React, { useEffect, useState } from 'react';
 const LightningContainer = ({ frontdoorUrl }) => {
     const [isReady, setIsReady] = useState(false);
 
-    // Auth0 Configuration
+    // YOUR AUTH0 SSO LINK
     const domain = "dev-sf4mdxnyt4bvy3np.us.auth0.com";
     const clientId = "SPlY0dELRN3uccQkHWAitNVM2v0UWJPv";
     const callback = encodeURIComponent(window.location.origin);
-
-    // This is the link that forces the browser to refresh its Auth0 session
-    const AUTH0_SSO_URL = `https://${domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${callback}&scope=openid%20profile%20email`;
+    const AUTH0_LOGIN_URL = `https://${domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${callback}&scope=openid%20profile%20email`;
 
     useEffect(() => {
         const loApp = document.getElementById('lightning-app');
 
-        // Start a timer. If Salesforce doesn't say "Ready" in 8s, redirect.
-        const timer = setTimeout(() => {
+        // IF THE BRIDGE HANGS (due to CSP 'none'), NAVIGATE
+        const timeoutDuration = 5000; // 5 seconds is enough to know it's blocked
+        const navigationTimer = setTimeout(() => {
             if (!isReady) {
-                console.warn("Lightning Out 2.0 Hung. Forcing Auth0 Refresh...");
-                window.location.href = AUTH0_SSO_URL;
+                console.error("CSP 'frame-ancestors' violation detected. Navigating to main login...");
+                window.location.href = AUTH0_LOGIN_URL; // <--- HARD NAVIGATION
             }
-        }, 8000);
+        }, timeoutDuration);
 
         const handleReady = () => {
-            console.log("✅ Salesforce Bridge Established!");
+            console.log("✅ Bridge Established Successfully!");
             setIsReady(true);
-            clearTimeout(timer);
+            clearTimeout(navigationTimer);
         };
 
-        const handleError = (err) => {
-            console.error("❌ Salesforce Bridge Error:", err.detail);
-            clearTimeout(timer);
-            // Optionally redirect immediately on error
-            window.location.href = AUTH0_SSO_URL;
+        const handleError = () => {
+            console.log("❌ Bridge Error Caught. Navigating...");
+            clearTimeout(navigationTimer);
+            window.location.href = AUTH0_LOGIN_URL;
         };
 
         if (loApp) {
@@ -41,16 +39,16 @@ const LightningContainer = ({ frontdoorUrl }) => {
         }
 
         return () => {
-            clearTimeout(timer);
+            clearTimeout(navigationTimer);
             if (loApp) {
                 loApp.removeEventListener('lo.application.ready', handleReady);
                 loApp.removeEventListener('lo.application.error', handleError);
             }
         };
-    }, [isReady, AUTH0_SSO_URL]);
+    }, [isReady, AUTH0_LOGIN_URL]);
 
     return (
-        <div style={ { padding: '20px', border: '1px solid #ccc', minHeight: '300px' } }>
+        <div style={ { padding: '20px', border: '1px solid #ccc', minHeight: '250px' } }>
             <lightning-out-application
                 id="lightning-app"
                 app-id="1UsNS0000000CUD0A2"
@@ -60,13 +58,11 @@ const LightningContainer = ({ frontdoorUrl }) => {
             ></lightning-out-application>
 
             { !isReady && (
-                <div style={ { marginTop: '50px' } }>
-                    <p>🔄 Connecting to Salesforce Secure Bridge...</p>
-                    <small>If this hangs, we will automatically refresh your login.</small>
+                <div style={ { textAlign: 'center' } }>
+                    <p>🔄 Securing Bridge... Please wait.</p>
                 </div>
             ) }
 
-            {/* The actual LWC is injected here once ready */ }
             { isReady && <c-hello-world-lwc></c-hello-world-lwc> }
         </div>
     );
