@@ -1,38 +1,38 @@
-// fetching the username from the UI
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
+  // 1. Set headers for cross-origin if necessary
   res.setHeader("Content-Type", "application/json");
 
   try {
-    /* ================= 1. Read username from UI ================= */
     const { username } = req.query;
 
     if (!username) {
-      return res.status(400).json({
-        success: false,
-        error: "Username is required"
-      });
+      return res.status(400).json({ success: false, error: "Username is required" });
     }
 
-    /* ================= 4. Create JWT ================= */
+    // 2. Validate and Clean Private Key
+    // Vercel sometimes mangles newlines in keys; this regex fixes them.
+    const rawKey = process.env.SF_PRIVATE_KEY_CONTENT;
+    if (!rawKey) throw new Error("SF_PRIVATE_KEY_CONTENT is not defined in Vercel settings");
+    const privateKey = rawKey.replace(/\\n/g, '\n');
+
+    /* ================= 3. Create JWT ================= */
     const jwtToken = jwt.sign(
       {
-        iss: process.env.SF_CLIENT_ID,     // Connected App client id
-        sub: username,        // 👈 USER FROM UI
-        aud: process.env.SF_LOGIN_URL,        // Salesforce login URL
+        iss: process.env.SF_CLIENT_ID,
+        sub: username,
+        aud: process.env.SF_LOGIN_URL, // e.g., https://login.salesforce.com
         exp: Math.floor(Date.now() / 1000) + 300
       },
-      process.env.SF_PRIVATE_KEY_CONTENT,
+      privateKey,
       { algorithm: "RS256" }
     );
 
-    /* ================= 5. Get Salesforce Access Token ================= */
+    /* ================= 4. Get Salesforce Access Token ================= */
     const sfRes = await fetch(`${process.env.SF_LOGIN_URL}/services/oauth2/token`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
         assertion: jwtToken
@@ -40,16 +40,11 @@ export default async function handler(req, res) {
     });
 
     const authData = await sfRes.json();
-
     if (!sfRes.ok) {
-      return res.status(401).json({
-        success: false,
-        salesforce_status: sfRes.status,
-        salesforce_response: authData
-      });
+      return res.status(401).json({ success: false, salesforce_error: authData });
     }
 
-    /* ================= 6. Get Lightning Out Frontdoor URL ================= */
+    /* ================= 5. Get Lightning Out Frontdoor URL ================= */
     const loRes = await fetch(
       `${authData.instance_url}/services/oauth2/lightningoutsingleaccess`,
       {
@@ -59,32 +54,21 @@ export default async function handler(req, res) {
           "Content-Type": "application/x-www-form-urlencoded"
         },
         body: new URLSearchParams({
-          lightning_out_app_id: "1UsNS0000000CUD0A2"
+          lightning_out_app_id: "1UsNS0000000CUD0A2" // Your LoApp ID
         })
       }
     );
 
     const loData = await loRes.json();
 
-    if (!loData.frontdoor_uri) {
-      return res.status(500).json({
-        success: false,
-        error: "Lightning Out frontdoor URL not returned",
-        details: loData
-      });
-    }
-
-    /* ================= 7. Return URL to UI ================= */
     return res.status(200).json({
       success: true,
-      url: loData.frontdoor_uri
+      url: loData.frontdoor_uri,
+      instanceUrl: authData.instance_url
     });
 
   } catch (err) {
-    console.error("GET-URL CRASH:", err);
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    console.error("SERVER ERROR:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
   }
 }
