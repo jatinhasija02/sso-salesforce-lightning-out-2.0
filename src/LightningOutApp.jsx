@@ -11,7 +11,7 @@ const LightningOutApp = () => {
     setLogStatus("Step 1: Contacting Vercel API...");
 
     try {
-      const response = await fetch(`/api/get-url?username=${encodeURIComponent(TARGET_USER)}`);
+      const response = await fetch(`/api/get-url?username=${encodeURIComponent(userEmail)}`);
       console.log("API Fetch Status:", response.status);
 
       const result = await response.json();
