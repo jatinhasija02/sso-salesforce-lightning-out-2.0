@@ -5,7 +5,7 @@ const LightningContainer = ({ frontdoorUrl }) => {
 
     // Auth0 Configuration
     const domain = "dev-sf4mdxnyt4bvy3np.us.auth0.com";
-    const clientId = "pkJRoRqgVGgxE1E5pbNfRGibCdoIQ2jC";
+    const clientId = "SPlY0dELRN3uccQkHWAitNVM2v0UWJPv";
     const callback = encodeURIComponent(window.location.origin);
 
     // This is the link that forces the browser to refresh its Auth0 session
