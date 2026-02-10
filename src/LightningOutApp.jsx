@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const LightningOutApp = () => {
-  const TARGET_USER = "hasijajassi02@gmail.com";
+  const TARGET_USER = "hasijajassi02@gmail.com"; // Your Salesforce username
   const [email, setEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
   const [logStatus, setLogStatus] = useState("");
@@ -13,11 +13,11 @@ const LightningOutApp = () => {
       const response = await fetch(`/api/get-url?username=${encodeURIComponent(TARGET_USER)}`);
       const result = await response.json();
 
-      if (!result.success) throw new Error(result.error || "Salesforce Auth Failed");
+      if (!result.success) throw new Error(result.error || "Auth Failed");
 
-      setLogStatus("Session active. Loading component...");
+      setLogStatus("Session active. Loading Salesforce components...");
 
-      // 🔹 Dynamically load script from the correct Salesforce instance
+      // 🔹 Load the script from the instance URL returned by your backend
       const script = document.createElement("script");
       script.src = `${result.instanceUrl}/lightning/lightning.out.latest/index.iife.prod.js`;
       script.async = true;
@@ -26,14 +26,13 @@ const LightningOutApp = () => {
         const loApp = document.querySelector("lightning-out-application");
         if (loApp) {
           loApp.setAttribute("frontdoor-url", result.url);
-          setCurrentEmail(userEmail); // Pass user input to the LWC
-          setLogStatus("LWC Loaded Successfully.");
+          setCurrentEmail(userEmail); // Update the LWC prop
+          setLogStatus("LWC Loaded.");
         }
       };
 
       document.body.appendChild(script);
     } catch (err) {
-      console.error(err);
       setLogStatus("Error: " + err.message);
     }
   };
@@ -43,13 +42,13 @@ const LightningOutApp = () => {
       <div style={ { marginBottom: "16px" } }>
         <input
           type="email"
-          placeholder="Enter email for LWC"
+          placeholder="Enter email to pass to LWC"
           value={ email }
           onChange={ (e) => setEmail(e.target.value) }
           style={ { padding: "8px", width: "400px", marginRight: "10px" } }
         />
-        <button onClick={ () => email ? startLWC(email) : alert("Please enter an email") }>
-          Show LWC
+        <button onClick={ () => email ? startLWC(email) : alert("Enter an email") }>
+          Launch LWC
         </button>
       </div>
 
@@ -60,8 +59,7 @@ const LightningOutApp = () => {
         components="c-hello-world-lwc"
       ></lightning-out-application>
 
-      <div style={ { marginTop: '20px', borderTop: '2px dashed #eee', paddingTop: '10px' } }>
-        <p><b>LWC Rendering Area:</b></p>
+      <div style={ { marginTop: '20px', borderTop: '1px solid #ccc' } }>
         <c-hello-world-lwc email={ currentEmail }></c-hello-world-lwc>
       </div>
     </div>
