@@ -6,6 +6,9 @@ export default defineConfig({
   build: {
     outDir: 'build',
   },
+  define: {
+    'process.env': {}
+  },
   server: {
     host: true,
     port: 5173,
