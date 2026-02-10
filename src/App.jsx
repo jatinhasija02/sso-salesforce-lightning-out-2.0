@@ -15,16 +15,27 @@ function App() {
     try {
       const response = await axios.post('/api/sso-login', { email });
       if (response.data.success) {
-        console.log("[LOG] ✅ Frontdoor URL Generated");
-        setSfSession({ isAuthenticated: true, frontdoorUrl: response.data.frontdoorUrl });
-      } else {
-        setErrorMsg(response.data.message || "Salesforce session failed.");
+        const { frontdoorUrl } = response.data;
+
+        console.log("[LOG] 🚀 Initializing Top-Level Session Handshake...");
+
+        // APPROACH: Hidden Window Handshake
+        // We open the frontdoor URL in a small popup that self-closes.
+        // This bypasses 'frame-ancestors' because it's a window, not an iframe.
+        const loginWindow = window.open(frontdoorUrl, 'sf_login', 'width=1,height=1,left=-1000,top=-1000');
+
+        // Give it 3 seconds to set the cookie, then close it and render the LWC
+        setTimeout(() => {
+          if (loginWindow) loginWindow.close();
+          setSfSession({ isAuthenticated: true, frontdoorUrl: frontdoorUrl });
+        }, 3000);
       }
     } catch (err) {
       setErrorMsg("Backend connection failed.");
     } finally {
       setLoading(false);
     }
+
   }, []);
 
   useEffect(() => {
